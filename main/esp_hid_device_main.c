@@ -393,9 +393,14 @@ int get_modifier_tag(const char *str, uint8_t *mod) {
 void ble_hid_demo_task_kbd(void *pvParameters)
 {
     ble_command_t received_cmd;
-    uint8_t buffer[8];
-
-    ESP_LOGI(TAG, "HID Keyboard Task Running with Shortcut Support...");
+    uint8_t buffer[8] = {0};
+    
+    // Timing configuration - seperti Rubber Ducky
+    const TickType_t press_delay = pdMS_TO_TICKS(2);     // Delay antara penekanan tombol
+    const TickType_t release_delay = pdMS_TO_TICKS(2);   // Delay sebelum melepas
+    const TickType_t char_delay = pdMS_TO_TICKS(5);      // Delay antar karakter (bisa disesuaikan)
+    
+    ESP_LOGI(TAG, "HID Keyboard Task Running with Ducky-like Speed...");
 
     while (1) {
         if (xQueueReceive(ble_command_queue, &received_cmd, portMAX_DELAY) == pdPASS) {
@@ -404,35 +409,40 @@ void ble_hid_demo_task_kbd(void *pvParameters)
             const char *cmd = received_cmd.command;
 
             while (cmd[i] != '\0') {
-                memset(buffer, 0, 8);
+                memset(buffer, 0, sizeof(buffer));
                 uint8_t modifier = 0;
                 
-                // Cek apakah ada tag modifier seperti [GUI]
+                // Check for modifier tags like [GUI]
                 int tag_len = get_modifier_tag(&cmd[i], &modifier);
 
                 if (tag_len > 0) {
-                    i += tag_len; // Loncat ke karakter setelah tag
+                    i += tag_len; // Skip to character after tag
                     
                     if (cmd[i] != '\0') {
                         char_to_code(buffer, cmd[i]);
                         buffer[0] |= modifier; 
                     } else {
+                        // Modifier only (e.g., just [GUI])
                         buffer[0] = modifier;
+                        buffer[2] = 0x00; // Reserved for modifier-only key
                     }
                 } else {
                     char_to_code(buffer, cmd[i]);
                 }
 
-                // --- EKSEKUSI TEKAN ---
+                // --- KEY PRESS ---
                 esp_hidd_dev_input_set(s_ble_hid_param.hid_dev, 0, 1, buffer, 8);
-                vTaskDelay(pdMS_TO_TICKS(10)); // Non-blocking delay
+                vTaskDelay(press_delay);
 
-                // --- EKSEKUSI LEPAS ---
-                memset(buffer, 0, 8);
+                // --- KEY RELEASE ---
+                memset(buffer, 0, sizeof(buffer));
                 esp_hidd_dev_input_set(s_ble_hid_param.hid_dev, 0, 1, buffer, 8);
-                vTaskDelay(pdMS_TO_TICKS(10)); 
-
-                if (cmd[i] != '\0') i++;
+                
+                // Delay between characters (bisa diatur sesuai kebutuhan)
+                if (cmd[i] != '\0') {
+                    vTaskDelay(char_delay);
+                    i++;
+                }
             }
         }
     }
