@@ -29,7 +29,8 @@ jobs:
         esp_idf_version: latest
         path: ./
         command: |
-          esptool.py --chip esp32s3 merge_bin -o build/evilkbd.bin @build/flash_args
+          idf.py build
+          esptool --chip esp32s3 merge_bin -o build/evilkbd.bin @build/flash_args
 
     - name: Create GitHub Release
       id: create_release
