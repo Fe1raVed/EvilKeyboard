@@ -26,7 +26,7 @@ jobs:
       uses: espressif/esp-idf-ci-action@v1
       with:
         target: esp32s3
-        esp_idf_version: v6.0.0
+        esp_idf_version: latest
         path: ./
         command: |
           esptool.py --chip esp32s3 merge_bin -o build/evilkbd.bin @build/flash_args
