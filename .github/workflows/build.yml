@@ -1,0 +1,45 @@
+name: ESP32-S3 CI Build EvilKeyboard
+
+on:
+  push:
+    tags:
+      - "v*" # Workflow ini akan jalan jika Anda melakukan push tag (misal: v1.0.0)
+  workflow_dispatch: # Memungkinkan menjalankan manual dari tab Actions
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Diperlukan untuk membuat Release dan upload aset
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+
+    - name: Build ESP32-S3 Project
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        target: esp32s3
+        esp_idf_version: v6.0
+        path: ./
+        command: |
+          esptool.py --chip esp32s3 merge_bin -o build/evilkbd.bin @build/flash_args
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+        files: |
+          build/evilkbd.bin
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

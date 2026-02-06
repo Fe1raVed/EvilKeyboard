@@ -1,0 +1,1 @@
+curl -X POST \ -H "Content-Type: application/json" \ -d '{"command": "github.com/Fe1raVed\n"}' \ -sS http://feiraved.local/api/command | jq
