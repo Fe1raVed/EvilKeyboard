@@ -30,7 +30,14 @@ jobs:
         path: ./
         command: |
           idf.py build
-          esptool --chip esp32s3 merge_bin -o build/evilkbd.bin @build/flash_args
+          esptool --chip esp32s3 merge-bin \
+            -o evilkbd.bin \
+            --flash-mode dio \
+            --flash-freq 80m \
+            --flash-size 2MB \
+            0x0 bootloader/bootloader.bin \
+            0x8000 partition_table/partition-table.bin \
+            0x10000 esp_hid_device.bin
 
     - name: Create GitHub Release
       id: create_release
